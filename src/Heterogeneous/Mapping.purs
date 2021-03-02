@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Either (Either(..))
 import Data.Functor.App (App(..))
-import Data.Functor.Variant (FProxy, VariantF)
+import Data.Functor.Variant (VariantF)
 import Data.Functor.Variant as VariantF
 import Data.FunctorWithIndex (class FunctorWithIndex, mapWithIndex)
 import Data.Symbol (class IsSymbol, SProxy(..))
@@ -17,6 +17,7 @@ import Prim.RowList as RL
 import Record.Builder (Builder)
 import Record.Builder as Builder
 import Type.Data.RowList (RLProxy(..))
+import Type.Proxy (Proxy(..))
 
 class Mapping f a b | f a -> b where
   mapping :: f -> a -> b
@@ -166,7 +167,7 @@ instance hmapVariantF ::
   HMap fn (VariantF rin x) (VariantF rout y)
   where
   hmap =
-    mapVariantFWithIndex (RLProxy :: RLProxy rl) <<< ConstMapping
+    mapVariantFWithIndex (Proxy :: Proxy rl) <<< ConstMapping
 
 instance hmapWithIndexVariantF ::
   ( RL.RowToList rin rl
@@ -175,23 +176,24 @@ instance hmapWithIndexVariantF ::
   HMapWithIndex fn (VariantF rin x) (VariantF rout y)
   where
   hmapWithIndex =
-    mapVariantFWithIndex (RLProxy :: RLProxy rl)
+    mapVariantFWithIndex (Proxy :: Proxy rl)
 
-class MapVariantFWithIndex (xs :: RowList Type) f (as :: Row Type) (bs :: Row Type) x y | xs f x -> as bs y where
-  mapVariantFWithIndex :: RLProxy xs -> f -> VariantF as x -> VariantF bs y
+
+class MapVariantFWithIndex (xs :: RowList (Type -> Type)) f (as :: Row (Type -> Type)) (bs :: Row (Type -> Type)) x y | xs f x -> as bs y where
+  mapVariantFWithIndex :: Proxy xs -> f -> VariantF as x -> VariantF bs y
 
 instance mapVariantFWithIndexCons ::
   ( IsSymbol sym
-  , Row.Cons sym (FProxy a) r1 r2
-  , Row.Cons sym (FProxy b) r3 r4
+  , Row.Cons sym a r1 r2
+  , Row.Cons sym b r3 r4
   , MappingWithIndex fn (SProxy sym) (a x) (b y)
   , MapVariantFWithIndex rest fn r1 r4 x y
   , Functor b
   ) =>
-  MapVariantFWithIndex (RL.Cons sym (FProxy a) rest) fn r2 r4 x y
+  MapVariantFWithIndex (RL.Cons sym (a) rest) fn r2 r4 x y
   where
   mapVariantFWithIndex _ fn =
-    mapVariantFWithIndex (RLProxy :: RLProxy rest) fn
+    mapVariantFWithIndex (Proxy :: Proxy rest) fn
       # VariantF.on label (VariantF.inj label <<< mappingWithIndex fn label)
     where
     label = SProxy :: SProxy sym

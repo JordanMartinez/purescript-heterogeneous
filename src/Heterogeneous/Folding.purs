@@ -6,7 +6,7 @@ import Data.Either (Either(..))
 import Data.Foldable (class Foldable, foldl)
 import Data.FoldableWithIndex (class FoldableWithIndex, foldlWithIndex)
 import Data.Functor.App (App(..))
-import Data.Functor.Variant (FProxy, VariantF)
+import Data.Functor.Variant (VariantF)
 import Data.Functor.Variant as VariantF
 import Data.Symbol (class IsSymbol, SProxy(..))
 import Data.Tuple (Tuple(..))
@@ -193,7 +193,7 @@ instance hfoldlVariantF ::
   HFoldl f x (VariantF r z) y
   where
   hfoldl =
-    foldlVariantFRowList (RLProxy :: RLProxy rl) <<< ConstFolding
+    foldlVariantFRowList (Proxy :: Proxy rl) <<< ConstFolding
 
 instance hfoldlVariantFWithIndex ::
   ( RL.RowToList r rl
@@ -202,21 +202,21 @@ instance hfoldlVariantFWithIndex ::
   HFoldlWithIndex f x (VariantF r z) y
   where
   hfoldlWithIndex =
-    foldlVariantFRowList (RLProxy :: RLProxy rl)
+    foldlVariantFRowList (Proxy :: Proxy rl)
 
-class FoldlVariantF f x (rl :: RowList Type) (r :: Row Type) z y | f x rl z -> r y where
-  foldlVariantFRowList :: RLProxy rl -> f -> x -> VariantF r z -> y
+class FoldlVariantF f x (rl :: RowList (Type -> Type)) (r :: Row (Type -> Type)) z y | f x rl z -> r y where
+  foldlVariantFRowList :: Proxy rl -> f -> x -> VariantF r z -> y
 
 instance foldlVariantFCons ::
   ( IsSymbol sym
-  , Row.Cons sym (FProxy a) r1 r2
+  , Row.Cons sym a r1 r2
   , FoldingWithIndex f (SProxy sym) x (a z) y
   , FoldlVariantF f x rest r1 z y
   ) =>
-  FoldlVariantF f x (RL.Cons sym (FProxy a) rest) r2 z y
+  FoldlVariantF f x (RL.Cons sym a rest) r2 z y
   where
   foldlVariantFRowList _ f x =
-    foldlVariantFRowList (RLProxy :: RLProxy rest) f x
+    foldlVariantFRowList (Proxy :: Proxy rest) f x
       # VariantF.on label (foldingWithIndex f label x)
     where
     label = SProxy :: SProxy sym
